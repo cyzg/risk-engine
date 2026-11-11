@@ -8,6 +8,14 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: 6379
+  datasource:            # ClickHouse (analytics sink), HTTP protocol
+    url: ${CLICKHOUSE_URL:jdbc:ch://localhost:8123/risk}
+    driver-class-name: com.clickhouse.jdbc.ClickHouseDriver
+    username: ${CLICKHOUSE_USER:default}
+    password: ${CLICKHOUSE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 2
+      initialization-fail-timeout: -1   # do not block app startup if ClickHouse is down
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
     consumer:
@@ -28,6 +36,11 @@ spring:
 
 risk:
   shadow-mode: false        # true: log decisions but always PASS (safe rule rollout)
+  sink:
+    clickhouse:
+      max-batch-size: 500   # max.poll.records: upper bound of rows per INSERT
+      min-bytes: 50000      # broker waits for this much data ...
+      max-wait-ms: 1000     # ... or this long, so a quiet topic still flushes every ~1s
   topics:
     input: txn-events
     decisions: risk-decisions

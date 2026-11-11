@@ -6,7 +6,10 @@ services:
     environment:
       KAFKA_BOOTSTRAP: kafka:19092
       REDIS_HOST: redis
-    depends_on: [kafka, redis]
+      CLICKHOUSE_URL: jdbc:ch://clickhouse:8123/risk
+      CLICKHOUSE_USER: risk
+      CLICKHOUSE_PASSWORD: risk
+    depends_on: [kafka, redis, clickhouse]
     restart: on-failure
 
   kafka:
@@ -42,6 +45,9 @@ services:
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.8
+    environment:   # dev-only credentials; the default user is not reachable from other containers
+      CLICKHOUSE_USER: risk
+      CLICKHOUSE_PASSWORD: risk
     ports: ["8123:8123", "9000:9000"]
     volumes:
       - ./docker/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql
