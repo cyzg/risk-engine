@@ -44,6 +44,6 @@ public class DecisionService {
                 "shadow", String.valueOf(shadowMode)).increment();
 
         return new DecisionResult(event.eventId(), event.userId(), effective, shadowMode,
-                eval.ruleVersion(), eval.hits(), elapsed / 1_000_000, Instant.now());
+                eval.ruleVersion(), eval.hits(), eval.riskScore(), elapsed / 1_000_000, Instant.now());
     }
 }

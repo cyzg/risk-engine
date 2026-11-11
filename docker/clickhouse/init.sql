@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS risk.decision_log
     shadow       UInt8,
     rule_version UInt64,
     hit_rules    Array(String),
+    risk_score   UInt16,
     latency_ms   UInt32,
     decided_at   DateTime64(3)
 )

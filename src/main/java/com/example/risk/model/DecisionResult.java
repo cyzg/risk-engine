@@ -11,6 +11,7 @@ public record DecisionResult(
         boolean shadow,
         long ruleVersion,
         List<RuleHit> hits,
+        int riskScore,
         long latencyMs,
         Instant decidedAt) {
 }

@@ -7,7 +7,8 @@ import java.util.Set;
 
 /**
  * Rule parameters. Bound from {@code risk.rules.*} at startup, and also used as the
- * request body of {@code PUT /admin/rules} for hot updates.
+ * request body of {@code PUT /admin/rules} for hot updates. Null fields fall back to defaults,
+ * so older request bodies keep working.
  */
 @ConfigurationProperties(prefix = "risk.rules")
 public record RuleConfig(
@@ -15,5 +16,9 @@ public record RuleConfig(
         BigDecimal rejectAmount,
         Long velocityPerMinute,
         Long deviceAccountLimit,
-        Set<String> blacklistedUsers) {
+        Set<String> blacklistedUsers,
+        Long maxCountries5m,
+        Long maxIps1h,
+        BigDecimal newDeviceAmount,
+        Integer rejectScore) {
 }

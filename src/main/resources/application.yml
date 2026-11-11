@@ -55,6 +55,10 @@ risk:
     reject-amount: 20000
     velocity-per-minute: 10
     device-account-limit: 3
+    max-countries5m: 1          # >1 distinct country within 5 min -> GEO_HOPPING
+    max-ips1h: 5                # >5 distinct IPs within 1 h -> IP_HOPPING
+    new-device-amount: 2000     # new device + amount >= this -> NEW_DEVICE_LARGE_AMOUNT
+    reject-score: 80            # combined risk score (capped at 100) >= this -> REJECT
     blacklisted-users:
       - u_blacklisted
 

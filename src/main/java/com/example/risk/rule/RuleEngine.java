@@ -20,7 +20,7 @@ import java.util.List;
 @Component
 public class RuleEngine {
 
-    public record Evaluation(Decision decision, List<RuleHit> hits, long ruleVersion) {
+    public record Evaluation(Decision decision, List<RuleHit> hits, long ruleVersion, int riskScore) {
     }
 
     private volatile RuleSet current;
@@ -33,14 +33,22 @@ public class RuleEngine {
         RuleSet snapshot = current; // single volatile read
         Decision result = Decision.PASS;
         List<RuleHit> hits = new ArrayList<>();
+        int score = 0;
         for (Rule rule : snapshot.rules()) {
             var hit = rule.evaluate(event, features);
             if (hit.isPresent()) {
                 hits.add(hit.get());
                 result = Decision.max(result, hit.get().decision());
+                score += hit.get().score();
             }
         }
-        return new Evaluation(result, hits, snapshot.version());
+        score = Math.min(100, score);
+        // Several moderate signals add up: a high combined score escalates to REJECT even when
+        // no single rule would reject on its own.
+        if (score >= snapshot.rejectScore()) {
+            result = Decision.max(result, Decision.REJECT);
+        }
+        return new Evaluation(result, hits, snapshot.version(), score);
     }
 
     /** Replace the rule set; the version is bumped monotonically. Writers are serialized. */

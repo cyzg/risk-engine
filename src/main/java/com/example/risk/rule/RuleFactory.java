@@ -14,11 +14,18 @@ public final class RuleFactory {
         long velocity = c.velocityPerMinute() != null ? c.velocityPerMinute() : 10;
         long device = c.deviceAccountLimit() != null ? c.deviceAccountLimit() : 3;
         Set<String> black = c.blacklistedUsers() != null ? c.blacklistedUsers() : Set.of();
+        long countries = c.maxCountries5m() != null ? c.maxCountries5m() : 1;
+        long ips = c.maxIps1h() != null ? c.maxIps1h() : 5;
+        BigDecimal newDeviceAmount = c.newDeviceAmount() != null ? c.newDeviceAmount() : new BigDecimal("2000");
+        int rejectScore = c.rejectScore() != null ? c.rejectScore() : 80;
 
-        return new RuleSet(version, List.of(
+        return new RuleSet(version, rejectScore, List.of(
                 new Rules.Blacklist(black),
                 new Rules.Amount(review, reject),
                 new Rules.Velocity(velocity),
-                new Rules.DeviceSharing(device)));
+                new Rules.DeviceSharing(device),
+                new Rules.GeoHopping(countries),
+                new Rules.IpHopping(ips),
+                new Rules.NewDeviceLargeAmount(newDeviceAmount)));
     }
 }

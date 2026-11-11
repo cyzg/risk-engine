@@ -63,13 +63,17 @@
       <button data-p="black">黑名单用户</button>
       <button data-p="velocity">1 分钟连发 15 笔</button>
       <button data-p="device">同设备 5 个账号</button>
+      <button data-p="geo">5 分钟内跨国（CN→US）</button>
+      <button data-p="ips">1 小时内 7 个 IP</button>
+      <button data-p="newdev">新设备大额 3000</button>
+      <button data-p="combo">跨国 + 新设备大额（叠加拒绝）</button>
     </div>
   </section>
   <section class="card">
     <h2>决策结果 <span class="muted" id="count"></span></h2>
     <div class="scroll"><table>
-      <thead><tr><th>时间</th><th>用户</th><th>决策</th><th>命中规则</th><th>耗时</th></tr></thead>
-      <tbody id="rows"><tr><td colspan="5" class="muted">暂无数据，先提交一笔交易</td></tr></tbody>
+      <thead><tr><th>时间</th><th>用户</th><th>决策</th><th>风险分</th><th>命中规则</th><th>耗时</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="6" class="muted">暂无数据，先提交一笔交易</td></tr></tbody>
     </table></div>
   </section>
 </main>
@@ -108,6 +112,15 @@ document.querySelectorAll('[data-p]').forEach(b => b.onclick = async () => {
       for (let i = 0; i < 15; i++) await post({...form(), userId:u});
       say('已为 ' + u + ' 连发 15 笔'); setTimeout(load, 800); return;
     }
+    if (p === 'geo' || p === 'ips' || p === 'newdev' || p === 'combo') {
+      const u = 'u_' + p + '_' + rnd(), base = {...form(), userId:u, deviceId:'d_'+rnd(), amount:100, country:'CN'};
+      fill({userId:u});
+      if (p === 'geo') { await post(base); await post({...base, country:'US'}); }
+      if (p === 'ips') { for (let i = 1; i <= 7; i++) await post({...base, ip:'10.0.0.'+i}); }
+      if (p === 'newdev') { await post(base); await post({...base, deviceId:'d_'+rnd(), amount:3000}); }
+      if (p === 'combo') { await post(base); await post({...base, deviceId:'d_'+rnd(), amount:3000, country:'US'}); }
+      say('已为 ' + u + ' 发送场景 ' + p); setTimeout(load, 800); return;
+    }
     if (p === 'device') {
       const d = 'd_shared_' + rnd(); fill({deviceId:d, amount:10});
       for (let i = 0; i < 5; i++) await post({...form(), userId:'u_'+rnd(), deviceId:d});
@@ -127,6 +140,7 @@ async function load() {
       <td class="muted">${esc(new Date(d.decidedAt).toLocaleTimeString())}</td>
       <td>${esc(d.userId)}</td>
       <td><span class="tag ${esc(d.decision)}">${esc(d.decision)}</span>${d.shadow ? ' <span class="muted">影子</span>' : ''}</td>
+      <td>${esc(d.riskScore ?? 0)}</td>
       <td>${(d.hits||[]).map(h => esc(h.ruleId) + ' <span class="muted">' + esc(h.reason) + '</span>').join('<br>') || '<span class="muted">无</span>'}</td>
       <td>${esc(d.latencyMs)} ms</td></tr>`).join('');
   } catch (e) { /* retry on next tick */ }

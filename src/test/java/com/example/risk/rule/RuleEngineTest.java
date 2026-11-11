@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RuleEngineTest {
 
     private static final RuleConfig CONFIG = new RuleConfig(
-            new BigDecimal("5000"), new BigDecimal("20000"), 10L, 3L, Set.of("bad_user"));
+            new BigDecimal("5000"), new BigDecimal("20000"), 10L, 3L, Set.of("bad_user"), null, null, null, null);
 
     private static TransactionEvent event(String user, String amount) {
         return new TransactionEvent("e1", user, "d1", new BigDecimal(amount), "CNY", "1.1.1.1", "CN", Instant.now());
@@ -57,7 +57,7 @@ class RuleEngineTest {
         var engine = new RuleEngine(CONFIG);
         assertEquals(Decision.PASS, engine.decide(event("u1", "30"), Features.EMPTY).decision());
 
-        long v = engine.reload(new RuleConfig(new BigDecimal("10"), new BigDecimal("20"), 10L, 3L, Set.of()));
+        long v = engine.reload(new RuleConfig(new BigDecimal("10"), new BigDecimal("20"), 10L, 3L, Set.of(), null, null, null, null));
         assertEquals(2, v);
         var eval = engine.decide(event("u1", "30"), Features.EMPTY);
         assertEquals(Decision.REJECT, eval.decision());

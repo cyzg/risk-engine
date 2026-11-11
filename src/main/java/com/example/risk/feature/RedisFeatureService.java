@@ -28,6 +28,7 @@ public class RedisFeatureService implements FeatureService {
     private static final Logger log = LoggerFactory.getLogger(RedisFeatureService.class);
 
     private static final long ONE_MINUTE_MS = 60_000;
+    private static final long FIVE_MINUTES_MS = 300_000;
     private static final long ONE_HOUR_MS = 3_600_000;
 
     private final StringRedisTemplate redis;
@@ -56,9 +57,18 @@ public class RedisFeatureService implements FeatureService {
         CompletableFuture<Long> c1m = async(() -> window("risk:txn:1m:" + e.userId(), now, ONE_MINUTE_MS, e.eventId()));
         CompletableFuture<Long> c1h = async(() -> window("risk:txn:1h:" + e.userId(), now, ONE_HOUR_MS, e.eventId()));
         CompletableFuture<Long> dev = async(() -> deviceAccounts(e));
+        // Distinct-count trick: reuse the sliding window with the value itself as the ZSET member,
+        // so repeats only refresh the score and ZCARD is the number of distinct values in the window.
+        CompletableFuture<Long> geo = async(() -> e.country() == null ? 0L
+                : window("risk:geo:5m:" + e.userId(), now, FIVE_MINUTES_MS, e.country()));
+        CompletableFuture<Long> ips = async(() -> e.ip() == null ? 0L
+                : window("risk:ip:1h:" + e.userId(), now, ONE_HOUR_MS, e.ip()));
+        CompletableFuture<Long> newDev = async(() -> newDeviceForUser(e));
 
-        return c1m.thenCombine(c1h, (a, b) -> new long[]{a, b})
-                .thenCombine(dev, (ab, d) -> new Features(ab[0], ab[1], d));
+        // every future degrades to 0 instead of failing, so allOf never completes exceptionally
+        return CompletableFuture.allOf(c1m, c1h, dev, geo, ips, newDev)
+                .thenApply(v -> new Features(c1m.join(), c1h.join(), dev.join(),
+                        geo.join(), ips.join(), newDev.join() == 1L));
     }
 
     private CompletableFuture<Long> async(java.util.function.Supplier<Long> task) {
@@ -89,5 +99,17 @@ public class RedisFeatureService implements FeatureService {
         redis.expire(key, Duration.ofDays(1));
         Long n = redis.opsForSet().size(key);
         return n == null ? 0 : n;
+    }
+
+    /** 1 when this device is new for the user AND the user already had another device. */
+    private long newDeviceForUser(TransactionEvent e) {
+        if (e.deviceId() == null) {
+            return 0;
+        }
+        String key = "risk:user_devices:" + e.userId();
+        Long added = redis.opsForSet().add(key, e.deviceId());
+        redis.expire(key, Duration.ofDays(30));
+        Long size = redis.opsForSet().size(key);
+        return added != null && added > 0 && size != null && size > 1 ? 1 : 0;
     }
 }

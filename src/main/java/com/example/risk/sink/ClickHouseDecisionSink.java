@@ -34,8 +34,8 @@ import java.util.List;
 public class ClickHouseDecisionSink {
     private static final Logger log = LoggerFactory.getLogger(ClickHouseDecisionSink.class);
     private static final String INSERT = "INSERT INTO risk.decision_log "
-            + "(event_id, user_id, decision, shadow, rule_version, hit_rules, latency_ms, decided_at) "
-            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            + "(event_id, user_id, decision, shadow, rule_version, hit_rules, risk_score, latency_ms, decided_at) "
+            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper;
@@ -92,8 +92,9 @@ public class ClickHouseDecisionSink {
                 ps.setInt(4, d.shadow() ? 1 : 0);
                 ps.setLong(5, d.ruleVersion());
                 ps.setArray(6, ps.getConnection().createArrayOf("String", hitRules));
-                ps.setLong(7, d.latencyMs());
-                ps.setTimestamp(8, Timestamp.from(d.decidedAt()));
+                ps.setInt(7, d.riskScore());
+                ps.setLong(8, d.latencyMs());
+                ps.setTimestamp(9, Timestamp.from(d.decidedAt()));
             }
 
             @Override
