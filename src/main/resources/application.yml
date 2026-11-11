@@ -1,0 +1,55 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: risk-engine
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:9092}
+    consumer:
+      group-id: risk-engine
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+    listener:
+      ack-mode: manual
+      concurrency: 3
+
+risk:
+  shadow-mode: false        # true: log decisions but always PASS (safe rule rollout)
+  topics:
+    input: txn-events
+    decisions: risk-decisions
+  feature:
+    timeout-ms: 50
+    pool:
+      core: 16
+      max: 32
+      queue: 1000
+  rules:
+    review-amount: 5000
+    reject-amount: 20000
+    velocity-per-minute: 10
+    device-account-limit: 3
+    blacklisted-users:
+      - u_blacklisted
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,metrics
+  metrics:
+    tags:
+      application: risk-engine
